@@ -71,7 +71,7 @@
   .ctrls{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:12px}
   .ctrls .c{display:flex;flex-direction:column;gap:3px}
   .ctrls .c span{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2)}
-  input[type=range]{accent-color:var(--steel);width:130px}
+  input[type=range]{accent-color:var(--steel);width:120px}
   input[type=color]{width:40px;height:30px;border:1px solid var(--line);border-radius:5px;background:#fff;padding:2px}
 
   .mlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
@@ -161,11 +161,15 @@ SEM VISTA" oninput="draw()"></textarea>
         <div class="pb">
           <div class="stage"><canvas id="cv" width="900" height="600"></canvas></div>
           <div class="ctrls">
-            <div class="c"><span>Tamanho</span><input type="range" id="rSize" min="3" max="16" step="0.5" value="7" oninput="onCtrl()"></div>
-            <div class="c"><span>Posição X</span><input type="range" id="rX" min="0" max="100" value="6" oninput="onCtrl()"></div>
-            <div class="c"><span>Posição Y</span><input type="range" id="rY" min="0" max="100" value="70" oninput="onCtrl()"></div>
+            <div class="c"><span>Tamanho</span><input type="range" id="rSize" min="2" max="14" step="0.5" value="5" oninput="onCtrl()"></div>
+            <div class="c"><span>Posição X</span><input type="range" id="rX" min="-30" max="130" value="3" oninput="onCtrl()"></div>
+            <div class="c"><span>Posição Y</span><input type="range" id="rY" min="-30" max="130" value="78" oninput="onCtrl()"></div>
+            <div class="c"><span>Margem ←</span><input type="range" id="rML" min="0" max="80" value="0" oninput="onCtrl()"></div>
+            <div class="c"><span>Margem ↓</span><input type="range" id="rMB" min="0" max="80" value="40" oninput="onCtrl()"></div>
+            <div class="c"><span>Margem →</span><input type="range" id="rMR" min="0" max="80" value="0" oninput="onCtrl()"></div>
+            <div class="c"><span>Margem ↑</span><input type="range" id="rMT" min="0" max="80" value="0" oninput="onCtrl()"></div>
             <div class="c"><span>Cor</span><input type="color" id="rCor" value="#e2001a" oninput="onCtrl()"></div>
-            <div class="c"><span>Contorno branco</span><input type="checkbox" id="rHalo" onchange="draw()" style="width:18px;height:18px;accent-color:var(--steel)"></div>
+            <div class="c"><span>Contorno</span><input type="checkbox" id="rHalo" onchange="draw()" style="width:18px;height:18px;accent-color:var(--steel)"></div>
           </div>
         </div>
       </div>
@@ -210,11 +214,18 @@ QUADRO ABERTO"></textarea>
           </div>
 
           <div class="row mb">
-            <div><label class="fld">Tamanho</label><input id="mSize" class="input" type="number" step="0.5" value="7"></div>
-            <div><label class="fld">Pos. X</label><input id="mX" class="input" type="number" value="6"></div>
-            <div><label class="fld">Pos. Y</label><input id="mY" class="input" type="number" value="70"></div>
+            <div><label class="fld">Tamanho</label><input id="mSize" class="input" type="number" step="0.5" value="5"></div>
+            <div><label class="fld">Pos. X</label><input id="mX" class="input" type="number" value="3"></div>
+            <div><label class="fld">Pos. Y</label><input id="mY" class="input" type="number" value="78"></div>
             <div><label class="fld">Cor</label><input id="mCor" class="input" type="color" value="#e2001a" style="height:38px"></div>
           </div>
+          <div class="row mb">
+            <div><label class="fld">Margem esquerda</label><input id="mML" class="input" type="number" value="0"></div>
+            <div><label class="fld">Margem direita</label><input id="mMR" class="input" type="number" value="0"></div>
+            <div><label class="fld">Margem topo</label><input id="mMT" class="input" type="number" value="0"></div>
+            <div><label class="fld">Margem baixo</label><input id="mMB" class="input" type="number" value="40"></div>
+          </div>
+          <div class="hint" style="margin-bottom:14px">As margens criam um espaço branco em volta da porta (valor em % da altura) — onde a legenda vai ficar. Padrão: 40% embaixo, suficiente pra 3 linhas de legenda.</div>
 
           <div class="row">
             <button class="btn steel" onclick="saveModel()">Salvar modelo</button>
@@ -294,9 +305,11 @@ function fillModelSelect(){
 function onPickModel(){
   cur = MODELOS.find(m=>m.id===$('selModelo').value);
   if(!cur) return;
-  $('rSize').value = cur.tamanho ?? 7;
-  $('rX').value = cur.pos_x ?? 6;
-  $('rY').value = cur.pos_y ?? 70;
+  $('rSize').value = cur.tamanho ?? 5;
+  $('rX').value = cur.pos_x ?? 3;
+  $('rY').value = cur.pos_y ?? 78;
+  const mg = (cur.margens && typeof cur.margens==='object') ? cur.margens : {l:0,r:0,t:0,b:40};
+  $('rML').value = mg.l ?? 0; $('rMR').value = mg.r ?? 0; $('rMT').value = mg.t ?? 0; $('rMB').value = mg.b ?? 40;
   $('rCor').value = cur.cor_legenda || '#e2001a';
   $('extras').value='';
   const box=$('presets'); box.innerHTML='';
@@ -332,11 +345,17 @@ function draw(){
     ctx.fillText(MODELOS.length? 'Modelo sem desenho base' : 'Cadastre um modelo na aba "Modelos"',450,300);
     ctx.textAlign='left';return;
   }
-  c.width=baseImg.naturalWidth; c.height=baseImg.naturalHeight;
-  ctx.clearRect(0,0,c.width,c.height);
-  ctx.drawImage(baseImg,0,0);
+  const base=Math.min(baseImg.naturalWidth, baseImg.naturalHeight);
+  const mL=Math.round(base*(+$('rML').value/100));
+  const mR=Math.round(base*(+$('rMR').value/100));
+  const mT=Math.round(base*(+$('rMT').value/100));
+  const mB=Math.round(base*(+$('rMB').value/100));
+  c.width = baseImg.naturalWidth + mL + mR;
+  c.height = baseImg.naturalHeight + mT + mB;
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.drawImage(baseImg, mL, mT);
   const lines=currentLines();
-  const fontPx=Math.max(8, Math.round(c.height*(parseFloat($('rSize').value)/100)));
+  const fontPx=Math.max(10, Math.round(baseImg.naturalHeight*(parseFloat($('rSize').value)/100)));
   ctx.font='bold '+fontPx+'px Arial, Helvetica, sans-serif';
   ctx.textBaseline='top'; ctx.textAlign='left';
   const x=c.width*(+$('rX').value/100), y0=c.height*(+$('rY').value/100), lh=fontPx*1.18;
@@ -352,8 +371,8 @@ let dragging=false;
 function placeFromEvent(e){
   const c=$('cv'), r=c.getBoundingClientRect();
   const px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
-  $('rX').value=Math.round(Math.min(1,Math.max(0,px))*100);
-  $('rY').value=Math.round(Math.min(1,Math.max(0,py))*100);
+  $('rX').value=Math.round(Math.min(1.3,Math.max(-0.3,px))*100);
+  $('rY').value=Math.round(Math.min(1.3,Math.max(-0.3,py))*100);
   draw();
 }
 (function(){
@@ -379,7 +398,8 @@ function download(){
 async function saveProj(){
   if(!cur){ toast('Selecione um modelo','err'); return; }
   const rec={ modelo_id:cur.id, titulo:$('titProj').value||null, legendas:currentLines(),
-    cor_legenda:$('rCor').value, pos_x:+$('rX').value, pos_y:+$('rY').value, tamanho:+$('rSize').value };
+    cor_legenda:$('rCor').value, pos_x:+$('rX').value, pos_y:+$('rY').value, tamanho:+$('rSize').value,
+    margens:{l:+$('rML').value,r:+$('rMR').value,t:+$('rMT').value,b:+$('rMB').value} };
   try{ const {error}=await withRetry(()=>sb.from('porta_projetos').insert(rec)); if(error)throw error;
     toast('Salvo no histórico','ok'); $('titProj').value=''; loadHist();
   }catch(e){ toast('Erro: '+e.message,'err'); }
@@ -415,6 +435,7 @@ function reopen(p){
   if(p.pos_x!=null)$('rX').value=p.pos_x;
   if(p.pos_y!=null)$('rY').value=p.pos_y;
   if(p.tamanho!=null)$('rSize').value=p.tamanho;
+  if(p.margens){ $('rML').value=p.margens.l??0; $('rMR').value=p.margens.r??0; $('rMT').value=p.margens.t??0; $('rMB').value=p.margens.b??40; }
   $('titProj').value=p.titulo||'';
   draw();
   toast('Histórico reaberto');
@@ -466,9 +487,10 @@ async function saveModel(){
     nome, linha:$('mLinha').value.trim()||null,
     legendas_padrao:$('mLeg').value.split('\n').map(s=>s.trim()).filter(Boolean),
     cor_legenda:$('mCor').value,
-    tamanho:parseFloat($('mSize').value)||7,
-    pos_x:parseInt($('mX').value)||6,
-    pos_y:parseInt($('mY').value)||70,
+    tamanho:parseFloat($('mSize').value)||5,
+    pos_x:parseInt($('mX').value)||3,
+    pos_y:parseInt($('mY').value)||78,
+    margens:{l:parseInt($('mML').value)||0, r:parseInt($('mMR').value)||0, t:parseInt($('mMT').value)||0, b:parseInt($('mMB').value)||40},
     updated_at:new Date().toISOString()
   };
   if(pendingImg!==null) rec.imagem=pendingImg;
@@ -486,7 +508,9 @@ function editModel(id){
   $('formTitle').textContent='Editar modelo';
   $('mId').value=m.id; $('mCod').value=m.codigo||''; $('mNome').value=m.nome||''; $('mLinha').value=m.linha||'';
   $('mLeg').value=(m.legendas_padrao||[]).join('\n');
-  $('mCor').value=m.cor_legenda||'#e2001a'; $('mSize').value=m.tamanho!=null?m.tamanho:7; $('mX').value=m.pos_x!=null?m.pos_x:6; $('mY').value=m.pos_y!=null?m.pos_y:70;
+  $('mCor').value=m.cor_legenda||'#e2001a'; $('mSize').value=m.tamanho??5; $('mX').value=m.pos_x??3; $('mY').value=m.pos_y??78;
+  const mg=(m.margens&&typeof m.margens==='object')?m.margens:{l:0,r:0,t:0,b:40};
+  $('mML').value=mg.l??0; $('mMR').value=mg.r??0; $('mMT').value=mg.t??0; $('mMB').value=mg.b??40;
   pendingImg=null;
   if(m.imagem){ $('mPrev').src=m.imagem; $('mPrev').classList.remove('hidden'); $('dropTxt').classList.add('hidden'); }
   else { $('mPrev').classList.add('hidden'); $('dropTxt').classList.remove('hidden'); }
@@ -495,7 +519,8 @@ function editModel(id){
 function resetForm(){
   $('formTitle').textContent='Novo modelo';
   ['mId','mCod','mNome','mLinha','mLeg'].forEach(i=>$(i).value='');
-  $('mCor').value='#e2001a'; $('mSize').value=7; $('mX').value=6; $('mY').value=70;
+  $('mCor').value='#e2001a'; $('mSize').value=5; $('mX').value=3; $('mY').value=78;
+  $('mML').value=0; $('mMR').value=0; $('mMT').value=0; $('mMB').value=40;
   pendingImg=null; $('mPrev').classList.add('hidden'); $('dropTxt').classList.remove('hidden'); $('mFile').value='';
 }
 async function delModel(m){
